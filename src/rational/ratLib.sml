@@ -222,17 +222,23 @@ handle HOL_ERR _ => raise ERR "RAT_CALCTERM_TAC" "";
  *--------------------------------------------------------------------------*)
 
 fun RAT_STRICT_CALC_TAC (asm_list,goal) =
-        let
-                val rat_terms = extract_rat goal;
-                val calc_thms = map RAT_CALC_CONV rat_terms;
-                val calc_asms = list_xmerge (map (fn x => fst (dest_thm x)) calc_thms);
-        in
-                (
-                        MAP_EVERY ASSUME_TAC (map (fn x => TAC_PROOF ((asm_list,x), RW_TAC intLib.int_ss [FRAC_DNMPOS,INT_MUL_POS_SIGN,INT_NOTPOS0_NEG,INT_NOT0_MUL,INT_GT0_IMP_NOT0,INT_ABS_NOT0POS])) calc_asms) THEN
-                        SUBST_TAC calc_thms
-                ) (asm_list,goal)
-        end
-handle HOL_ERR _ => raise ERR "RAT_STRICT_CALC_TAC" "";
+  let
+    val rat_terms = extract_rat goal;
+    val calc_thms = map RAT_CALC_CONV rat_terms;
+    val calc_asms = op_U aconv (map (fn x => fst (dest_thm x)) calc_thms);
+  in
+    (
+      MAP_EVERY
+        ASSUME_TAC
+          (map (fn x => TAC_PROOF
+                          ((asm_list,x),
+                           RW_TAC intLib.int_ss [FRAC_DNMPOS,INT_MUL_POS_SIGN,
+                                                 INT_NOTPOS0_NEG,INT_NOT0_MUL,
+                                                 INT_GT0_IMP_NOT0,
+                                                 INT_ABS_NOT0POS]))
+               calc_asms) THEN
+       SUBST_TAC calc_thms) (asm_list,goal)
+  end handle HOL_ERR _ => raise ERR "RAT_STRICT_CALC_TAC" "";
 
 (*--------------------------------------------------------------------------
  *  RAT_CALC_TAC : tactic
@@ -250,7 +256,7 @@ fun RAT_CALC_TAC (asm_list,goal) =
                         (* split list into assumptions and conclusions *)
                 val (calc_asmlists, calc_concl) = ListPair.unzip (map (fn x => dest_thm x) calc_thms);
                         (* merge assumptions lists *)
-                val calc_asms = list_xmerge calc_asmlists;
+                val calc_asms = op_U aconv calc_asmlists;
                         (* function to prove an assumption, TODO: fracLib benutzen *)
                 val gen_thm = (fn x => TAC_PROOF ((asm_list,x), RW_TAC intLib.int_ss [] ));
                         (* try to prove assumptions *)
